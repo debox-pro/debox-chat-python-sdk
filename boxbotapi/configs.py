@@ -6,7 +6,7 @@ from typing import List, Optional, Protocol, runtime_checkable
 from .params import Params
 from .types import InlineKeyboardMarkup
 
-APIEndpoint = "https://open.debox.pro/openapi/bot%s/%s"
+APIEndpoint = "https://open.debox.pro/openapi/%s"
 Debug = False
 MessageListener = False
 
@@ -17,6 +17,9 @@ ErrAPIForbidden = "forbidden"
 ModeMarkdown = "Markdown"
 ModeMarkdownV2 = "MarkdownV2"
 ModeHTML = "HTML"
+ModeVideo = "video"
+ModeImage = "image"
+ModeFile = "file"
 ModeRichText = "richtext"
 
 UpdateTypeMessage = "message"
@@ -123,7 +126,7 @@ class MessageConfig:
         return params
 
     def method(self) -> str:
-        return "sendMessage"
+        return "bot/sendMessage"
 
 
 @dataclass
@@ -171,7 +174,7 @@ class MessageToFansConfig:
         return params
 
     def method(self) -> str:
-        return "sendMessageToFans"
+        return "bot/sendMessageToFans"
 
 
 @dataclass
@@ -235,7 +238,7 @@ class EditMessageTextConfig:
         return params
 
     def method(self) -> str:
-        return "editMessageText"
+        return "bot/editMessageText"
 
 
 @dataclass
@@ -246,7 +249,7 @@ class UpdateConfig:
     AllowedUpdates: List[str] = field(default_factory=list)
 
     def method(self) -> str:
-        return "getUpdates"
+        return "bot/getUpdates"
 
     def params(self) -> Params:
         params = Params()

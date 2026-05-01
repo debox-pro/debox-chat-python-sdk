@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import json
 import logging
+import hashlib
+import random
 import threading
+import time
 import urllib.parse
 import urllib.request
+import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Optional, Protocol
 
@@ -51,8 +55,9 @@ class DefaultHTTPClient:
 
 
 class BotAPI:
-    def __init__(self, token: str, apiEndpoint: str, client: Optional[HTTPClient] = None):
+    def __init__(self, token: str, apiSecret: str, apiEndpoint: str, client: Optional[HTTPClient] = None):
         self.Token = token
+        self.ApiSecret = apiSecret
         self.Debug = False
         self.Buffer = 100
         self.Self = User()
@@ -68,8 +73,9 @@ class BotAPI:
         if cfg.Debug:
             logging.info("Endpoint: %s, params: %s", endpoint, params)
 
-        method = self.apiEndpoint % (self.Token, endpoint)
+        method = self.apiEndpoint % endpoint
         encoded = urllib.parse.urlencode(dict(params)).encode("utf-8")
+        nonce, timestamp, signature = self.getSignature()
         req = HTTPRequest(
             method="POST",
             url=method,
@@ -77,6 +83,10 @@ class BotAPI:
             headers={
                 "Content-Type": "application/x-www-form-urlencoded",
                 "X-API-KEY": self.Token,
+                "nonce": nonce,
+                "timestamp": timestamp,
+                "signature": signature,
+                "X-Request-Id": str(uuid.uuid4()),
             },
         )
 
@@ -103,12 +113,18 @@ class BotAPI:
 
         return api_resp
 
+    def getSignature(self) -> tuple[str, str, str]:
+        nonce = str(random.randint(0, 2**31 - 1))
+        timestamp = str(int(time.time()))
+        signature = hashlib.sha1(f"{self.ApiSecret}{nonce}{timestamp}".encode("utf-8")).hexdigest()
+        return nonce, timestamp, signature
+
     def decodeAPIResponse(self, responseBody: bytes) -> APIResponse:
         data = json.loads(responseBody.decode("utf-8"))
         return APIResponse.from_json_dict(data)
 
     def GetMe(self) -> User:
-        resp = self.MakeRequest("getMe", None)
+        resp = self.MakeRequest("bot/getMe", None)
         user = User.from_dict(resp.Result)
         return user if user is not None else User()
 
@@ -186,21 +202,21 @@ class BotAPI:
 
 def SetHost(host: str) -> None:
     if host:
-        cfg.APIEndpoint = f"{host}/openapi/bot%s/%s"
+        cfg.APIEndpoint = f"{host}/openapi/%s"
     else:
         logging.warning("SetHost error,host is empty,use the default host now")
 
 
-def NewBotAPI(token: str) -> BotAPI:
-    return NewBotAPIWithClient(token, cfg.APIEndpoint, DefaultHTTPClient())
+def NewBotAPI(token: str, apiSecret: str) -> BotAPI:
+    return NewBotAPIWithClient(token, apiSecret, cfg.APIEndpoint, DefaultHTTPClient())
 
 
-def NewBotAPIWithAPIEndpoint(token: str, apiEndpoint: str) -> BotAPI:
-    return NewBotAPIWithClient(token, apiEndpoint, DefaultHTTPClient())
+def NewBotAPIWithAPIEndpoint(token: str, apiSecret: str, apiEndpoint: str) -> BotAPI:
+    return NewBotAPIWithClient(token, apiSecret, apiEndpoint, DefaultHTTPClient())
 
 
-def NewBotAPIWithClient(token: str, apiEndpoint: str, client: Optional[HTTPClient]) -> BotAPI:
-    bot = BotAPI(token=token, apiEndpoint=apiEndpoint, client=client)
+def NewBotAPIWithClient(token: str, apiSecret: str, apiEndpoint: str, client: Optional[HTTPClient]) -> BotAPI:
+    bot = BotAPI(token=token, apiSecret=apiSecret, apiEndpoint=apiEndpoint, client=client)
     bot.Self = bot.GetMe()
     return bot
 

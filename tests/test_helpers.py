@@ -31,7 +31,7 @@ class TestHelpers(unittest.TestCase):
 
         self.assertEqual("chat_1", msg.ChatID)
         self.assertEqual("group", msg.ChatType)
-        self.assertEqual("sendMessage", msg.method())
+        self.assertEqual("bot/sendMessage", msg.method())
         self.assertIsNotNone(msg.ReplyMarkup)
 
 
