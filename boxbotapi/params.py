@@ -66,6 +66,9 @@ def _to_json_compatible(value: Any) -> Any:
 
 
 def _camel_to_snake(name: str) -> str:
+    # Handle common acronyms first
+    if name == "URL":
+        return "url"
     out = []
     for i, ch in enumerate(name):
         if ch.isupper() and i > 0:
